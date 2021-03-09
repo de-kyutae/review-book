@@ -90,11 +90,8 @@ class Variable:
 
     def backward(self, retain_grad=False, create_graph=False):
         if self.grad is None:
-            #self.grad = np.ones_like(self.data)
-            self.grad = Variable(np.ones_like(self.data)) #고차미분(구현편, step32)
-            
-            #xp = dezero.cuda.get_array_module(self.data)
-            #self.grad = Variable(xp.ones_like(self.data))
+            xp = dezero.cuda.get_array_module(self.data)
+            self.grad = Variable(xp.ones_like(self.data))
 
         funcs = []
         seen_set = set()
@@ -238,14 +235,12 @@ class Mul(Function):
 
     def backward(self, gy):
         x0, x1 = self.inputs
-        return gy * x1, gy * x0 # step32(고차미분 구현, p.263)
-    
-#         gx0 = gy * x1
-#         gx1 = gy * x0
-#         if x0.shape != x1.shape:  # for broadcast
-#             gx0 = dezero.functions.sum_to(gx0, x0.shape)
-#             gx1 = dezero.functions.sum_to(gx1, x1.shape)
-#        return gx0, gx1
+        gx0 = gy * x1
+        gx1 = gy * x0
+        if x0.shape != x1.shape:  # for broadcast
+            gx0 = dezero.functions.sum_to(gx0, x0.shape)
+            gx1 = dezero.functions.sum_to(gx1, x1.shape)
+        return gx0, gx1
 
 
 def mul(x0, x1):
@@ -297,14 +292,12 @@ class Div(Function):
 
     def backward(self, gy):
         x0, x1 = self.inputs
-        return gy * x1, gy * x0 # step32(고차미분 구현, p.263)
-#         x0, x1 = self.inputs
-#         gx0 = gy / x1
-#         gx1 = gy * (-x0 / x1 ** 2)
-#         if x0.shape != x1.shape:  # for broadcast
-#             gx0 = dezero.functions.sum_to(gx0, x0.shape)
-#             gx1 = dezero.functions.sum_to(gx1, x1.shape)
-#         return gx0, gx1
+        gx0 = gy / x1
+        gx1 = gy * (-x0 / x1 ** 2)
+        if x0.shape != x1.shape:  # for broadcast
+            gx0 = dezero.functions.sum_to(gx0, x0.shape)
+            gx1 = dezero.functions.sum_to(gx1, x1.shape)
+        return gx0, gx1
 
 
 def div(x0, x1):
